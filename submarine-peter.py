@@ -17,20 +17,31 @@ COIN_SCALING = 1.0  # 0.25
 
 SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "Sprite Collect Coins with Background Example"
+SCREEN_TITLE = "Submarine Peter"
 MAXAGE = 1.3
+
+class Torpedo(arcade.Sprite):
+
+    def update(self):
+        super().update()
+        # kill self if reaching right screen border
+        if self.left > 1200:
+            self.remove_from_sprite_lists()
+
 
 
 class Particle(arcade.Sprite):
 
     def update(self):
+        #f self.age > 1:
         super().update()
+
         self.change_y += 0.1  # gravitation
         # self.change_y *= 1.01#beschi***** Äh.... Beschleunigung >1
         # self.change_x *= 1.01
         self.change_y *= 0.9  # beschi***** Äh.... Beschleunigung <1
         self.change_x *= 0.9
-
+        # after 1 second, start climbing
         if self.age > MAXAGE:
             self.remove_from_sprite_lists()
 
@@ -74,6 +85,7 @@ class MyGame(arcade.Window):
         self.player_list = None
         self.coin_list = None
         self.dust_list = None
+        self.torpedo_list = None
 
         # Set up the player info
         self.player_sprite = None
@@ -99,6 +111,7 @@ class MyGame(arcade.Window):
         self.player_list = arcade.SpriteList()
         self.coin_list = arcade.SpriteList()
         self.dust_list = arcade.SpriteList()
+        self.torpedo_list = arcade.SpriteList()
 
         # Set up the player
         self.score = 0
@@ -138,6 +151,7 @@ class MyGame(arcade.Window):
         self.coin_list.draw()
         self.player_list.draw()
         self.dust_list.draw()
+        self.torpedo_list.draw()
 
         # Render the text
         arcade.draw_text(f"Score: {self.score}", 10, 20, arcade.color.WHITE, 14)
@@ -155,9 +169,18 @@ class MyGame(arcade.Window):
     def on_key_press(self, symbol, modifiers):
         print("key pressed", symbol)
 
+        if symbol == arcade.key.SPACE:
+            # fire torpedo
+            torpedo = Torpedo(os.path.join("images", "laserRed16.png"))
+            torpedo.center_x = self.player.center_x + 50
+            torpedo.center_y = self.player.center_y
+            torpedo.change_x = 5
+            torpedo.change_y = 0
+            self.torpedo_list.append(torpedo)
+
         if symbol == arcade.key.W: # or symbol == arcade.key.UP:
 
-            self.player.change_y = 50
+            self.player.change_y = 10
             #print("rauf")
             # arcade.play_sound(self.move_up_sound)
 
@@ -173,7 +196,10 @@ class MyGame(arcade.Window):
             self.player.change_x = 50
 
     def on_key_release(self, symbol: int, modifiers: int):
-        pass
+        if symbol == arcade.key.W: # or symbol == arcade.key.UP:
+
+            self.player.change_y = 0
+
 
         #if symbol == arcade.key.W:
         #    self.player.cange_y = 0
@@ -185,9 +211,22 @@ class MyGame(arcade.Window):
         # example though.)
         self.coin_list.update()
         self.dust_list.update()
+        self.torpedo_list.update()
         self.player_list.update()
         for p in self.dust_list:
             p.age += delta_time
+
+        for torpedo in self.torpedo_list:
+            # create bubbles
+            if random.random() < 0.1:
+                bubble = Particle(os.path.join("images", "sun.gif"),
+                         random.random() * 0.15 + 0.03)  # scaling 0.01 ... 0.21
+                bubble.center_x = torpedo.center_x
+                bubble.center_y = torpedo.center_y
+                bubble.change_x = 0
+                bubble.change_y = random.random() * 10 + 5
+                bubble.age = 0
+                self.dust_list.append(bubble)
 
         # Generate a list of all sprites that collided with the player.
         hit_list = arcade.check_for_collision_with_list(self.player, self.coin_list)
